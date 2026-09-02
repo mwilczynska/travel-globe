@@ -3,7 +3,7 @@
 #   cp .public-blocklist.example .public-blocklist
 #
 # Then replace the placeholders below with your real values. The copy is
-# gitignored, so your actual domain and host never enter a commit — which is the
+# gitignored, so your actual domain and host never enter a commit, which is the
 # whole point: a checked-in blocklist would publish exactly what it guards.
 #
 # One extended regular expression per line, matched case-insensitively against

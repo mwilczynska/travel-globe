@@ -48,7 +48,7 @@ export function usePageView() {
   }, []);
 }
 
-/** Event trackers. Safe to call from any component — no side effects on mount. */
+/** Event trackers. Safe to call from any component; no side effects on mount. */
 export function useAnalytics() {
   const trackPostView = useCallback((postId: number) => {
     trackEvent('post_view', { post_id: postId }, postId);

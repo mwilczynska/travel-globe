@@ -30,13 +30,13 @@ Open <http://localhost:5173>.
 
 `npm run seed` builds a fictional round-the-world trip from the public domain
 photographs in `backend/demo-assets/`, so the globe has a route to draw on first
-run. It runs them through the real upload pipeline — EXIF read, resize, WebP
-encode — rather than writing rows straight into the database, so what you see is
+run. It runs them through the real upload pipeline (EXIF read, resize, WebP
+encode) rather than writing rows straight into the database, so what you see is
 the app actually working. It refuses to run if the database already has posts.
 
 ## What it does
 
-**An interactive globe, not a map.** Every located post becomes a pin, joined in
+**An interactive globe.** Every located post becomes a pin, joined in
 date order by a dashed route line. Click a pin to jump the feed to that post;
 hover a post to spin the globe to it.
 
@@ -53,8 +53,8 @@ constant 2px wide and stops it showing through the globe at any zoom.
 pin; its capture date becomes the post date. HEIC is converted, everything is
 resized to 2000px and re-encoded as WebP.
 
-**Six post types** — photo/video, text, quote, link, audio — plus a lightbox with
-a grid gallery mode, keyboard navigation and swipe gestures.
+**Six post types:** photo/video, text, quote, link and audio, plus a lightbox
+with a grid gallery mode, keyboard navigation and swipe gestures.
 
 ![Gallery mode in the lightbox](docs/screenshots/lightbox-gallery.jpg)
 
@@ -66,7 +66,7 @@ with a table view for the charts whose colours fall under 3:1 contrast.
 
 ![The analytics dashboard](docs/screenshots/analytics.jpg)
 
-**Mobile gets a map mode** — full-screen globe with a swipeable post carousel.
+**Mobile gets a map mode:** a full-screen globe with a swipeable post carousel.
 
 <img src="docs/screenshots/mobile-map.jpg" width="360" alt="Mobile map mode: full-screen globe with a swipeable post carousel">
 
@@ -112,7 +112,7 @@ docker compose -f docker-compose.local.yml up --build   # http://localhost
 
 > Two things in `docker-compose.yml` are load-bearing. Switching `db-data` or
 > `uploads` from named volumes to bind mounts points the backend at an empty
-> directory and it will create a blank database — the site comes up with no posts
+> directory and it will create a blank database. The site comes up with no posts
 > or accounts, and the real data stays behind in the volume. Dropping port 443 or
 > the letsencrypt mount breaks HTTPS.
 
@@ -130,7 +130,7 @@ React 18 · TypeScript · Tailwind · Vite · Express · SQLite (sql.js) · Glob
 
 SQLite via sql.js means the whole database is one file and a backup is a file
 copy. It also means the database lives **in memory** while the server runs and is
-written back on change — so after any out-of-band change to the file (a restore,
+written back on change, so after any out-of-band change to the file (a restore,
 a `npm run setup`), restart the backend or it will overwrite your change.
 
 ## Project layout
@@ -167,9 +167,9 @@ routes need an account.
 
 | Endpoint | Method | Auth | Description |
 |---|---|---|---|
-| `/viewer/login` | POST | — | Viewer password login |
-| `/viewer/check` | GET | — | Session status |
-| `/auth/login` `/auth/logout` `/auth/me` | POST/POST/GET | —/author/author | Author session |
+| `/viewer/login` | POST | none | Viewer password login |
+| `/viewer/check` | GET | none | Session status |
+| `/auth/login` `/auth/logout` `/auth/me` | POST/POST/GET | none/author/author | Author session |
 | `/posts` | GET/POST | viewer/author | List (paginated) / create |
 | `/posts/:id` | GET/PUT/DELETE | viewer/author/author | Read / update / delete |
 | `/posts/globe/data` | GET | viewer | Pins and route for the globe |
@@ -177,11 +177,11 @@ routes need an account.
 | `/comments/pending` `/comments/all` | GET | author | Moderation queues |
 | `/comments/:id` `/comments/:id/approve` | PUT/DELETE | author | Edit, delete, approve |
 | `/upload` | POST | author | Upload media (200MB limit) |
-| `/analytics/event` | POST | — | Track an event |
+| `/analytics/event` | POST | none | Track an event |
 | `/analytics/summary` `/analytics/events` `/analytics/export` | GET | author | Reporting and CSV |
 | `/settings/:key` | GET/PUT | author | `comment_moderation`, `rate_limiting_enabled` |
 | `/geocoding/reverse` `/geocoding/search` | GET | author | Nominatim lookups |
-| `/csrf-token` `/health` | GET | — | CSRF token, health check |
+| `/csrf-token` `/health` | GET | none | CSRF token, health check |
 
 ## Security
 
@@ -210,9 +210,9 @@ it a real one.
 
 ## Credits
 
-Demo photographs are public domain or CC0 works by other photographers —
-see [docs/CREDITS.md](docs/CREDITS.md) for each one's source and licence.
+Demo photographs are public domain or CC0 works by other photographers.
+See [docs/CREDITS.md](docs/CREDITS.md) for each one's source and licence.
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

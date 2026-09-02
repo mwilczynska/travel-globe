@@ -4,7 +4,7 @@
 //   npm run seed
 //
 // The photos in backend/demo-assets/ are public domain or CC0 landmark shots
-// with synthetic GPS written into their EXIF — see docs/CREDITS.md and
+// with synthetic GPS written into their EXIF. See docs/CREDITS.md and
 // scripts/prepare-demo-assets.mjs. Nothing here is real: the author, the
 // captions, the comments and the analytics traffic are all invented.
 //
@@ -42,7 +42,7 @@ const PHOTO_POSTS: PhotoPostSpec[] = [
     location: 'Reykjavík, Iceland',
     title: 'Starting at the top',
     caption:
-      'Hallgrímskirkja, and the first stamp in the passport. It never really got dark — '
+      'Hallgrímskirkja, and the first stamp in the passport. It never really got dark, and '
       + 'we kept forgetting to eat because the sun refused to set.',
   },
   {
@@ -100,7 +100,7 @@ const PHOTO_POSTS: PhotoPostSpec[] = [
     title: 'Across the Pacific',
     caption:
       'Nine time zones in eleven hours and the date went backwards. Last stop before '
-      + 'home — and the longest line on the map.',
+      + 'home, and the longest line on the map.',
   },
 ];
 
@@ -230,7 +230,7 @@ function seedComments(postIds: number[]): void {
     [0, 'Sam', 'That sky is unreal. Did you get any northern lights?'],
     [0, 'Priya', 'Jealous. Say hi to the puffins for me.'],
     [3, 'Dad', 'Your mother wants to know if you are eating properly.'],
-    [6, 'Yuki', 'If you go back, try the trail behind the summit shrine — almost nobody walks it.'],
+    [6, 'Yuki', 'If you go back, try the trail behind the summit shrine. Almost nobody walks it.'],
     [6, 'Sam', 'Two photos is not enough. Post more of these.'],
     [7, 'Priya', 'Welcome back to the western hemisphere!'],
   ];
@@ -310,7 +310,7 @@ function seedAnalytics(postIds: number[]): void {
 
       // Roughly a third of visits reuse an earlier visitor's session id.
       // session_id is a 30-day cookie, so it identifies a visitor rather than a
-      // visit — without some reuse every visitor is new, and the dashboard's
+      // visit. Without some reuse every visitor is new, and the dashboard's
       // new-vs-returning split and visit-depth sessionisation have nothing to
       // show.
       const returning = (daysAgo + i) % 3 === 0 && daysAgo < 35;

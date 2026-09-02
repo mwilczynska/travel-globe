@@ -17,7 +17,7 @@ export async function extractExif(filePath: string): Promise<ExifData> {
 
     // GPS has to be a second, separate read. `pick` restricts the output to the
     // listed tags, and latitude/longitude are values exifr *derives* from the
-    // GPS block rather than tags in their own right — so a picked parse drops
+    // GPS block rather than tags in their own right, so a picked parse drops
     // them however gps:true is set, and coordinates came back undefined for
     // every photo.
     const gps = await exifr.gps(filePath).catch(() => null);

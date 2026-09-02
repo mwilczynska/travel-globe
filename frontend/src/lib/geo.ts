@@ -22,7 +22,7 @@ function latLngToUnit(lat: number, lng: number): Vec3 {
   return [x / GLOBE_RADIUS, y / GLOBE_RADIUS, z / GLOBE_RADIUS];
 }
 
-/** Inverse of latLngToUnit — used by tests and for reasoning about a built route. */
+/** Inverse of latLngToUnit. Used by tests and for reasoning about a built route. */
 export function xyzToLatLng([x, y, z]: Vec3): [number, number] {
   const r = Math.hypot(x, y, z) || 1;
   const lat = 90 - Math.acos(Math.min(1, Math.max(-1, y / r))) / DEG2RAD;
@@ -35,7 +35,7 @@ export function xyzToLatLng([x, y, z]: Vec3): [number, number] {
 
 /**
  * Flat [x,y,z,x,y,z,...] positions tracing the route through `route` stops,
- * walking each leg along its great circle — the actual shortest path between
+ * walking each leg along its great circle, the actual shortest path between
  * two points on a sphere.
  *
  * Interpolating lat/lng linearly instead takes the long way round whenever a
@@ -61,7 +61,7 @@ function arcPositions(from: [number, number], to: [number, number], degreesPerSt
     const t = j / segments;
     let v: Vec3;
     if (sinOmega < 1e-6) {
-      // Coincident (or exactly antipodal) stops — no unique great circle.
+      // Coincident (or exactly antipodal) stops, so there is no unique great circle.
       v = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
     } else {
       const wa = Math.sin((1 - t) * omega) / sinOmega;
@@ -80,7 +80,7 @@ function arcPositions(from: [number, number], to: [number, number], degreesPerSt
  *
  * Drawing the route as separate legs keeps each line's accumulated dash
  * distance small. A single polyline accumulates distance from the very first
- * stop, and that total is multiplied by dashScale in the shader — so on a late,
+ * stop, and that total is multiplied by dashScale in the shader, so on a late,
  * long leg a tiny change in dashScale swings the dash phase by a large fraction
  * of a cycle, which reads as the line flickering between dashed and solid.
  */
@@ -107,7 +107,7 @@ export function buildRouteLegPositions(route: [number, number][], degreesPerStep
     // A there-and-back pair (Soho -> Ho Chi Minh, then Ho Chi Minh -> London)
     // covers the same great circle, so two dashed lines land on top of each
     // other. Each is measured from its own start, so their dash phases differ
-    // and the relative phase sweeps as dashScale changes with zoom — one line's
+    // and the relative phase sweeps as dashScale changes with zoom, so one line's
     // dashes fill the other's gaps and the pair flickers between dashed and
     // solid. The second line also adds nothing visually: it is the same stroke.
     if (drawn.some(([x, y]) => (samePlace(a, x) && samePlace(b, y)) || (samePlace(a, y) && samePlace(b, x)))) {
@@ -152,7 +152,7 @@ export function buildRoutePositions(route: [number, number][], degreesPerStep = 
  * containing the visible horizon.
  *
  * The horizon of a sphere of radius R seen from distance d is NOT the great
- * circle through the centre — it is the smaller circle at n·p = R²/d, and it
+ * circle through the centre. It is the smaller circle at n·p = R²/d, and it
  * shrinks as the camera moves in. Clipping the route line at the centre plane
  * (offset 0) leaves a band of line beyond the horizon still drawn, which reads
  * as the route showing "through" the globe.

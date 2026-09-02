@@ -218,7 +218,7 @@ export function Globe({ onPinClick, onPinHover, selectedPostId }: GlobeProps) {
     let dashAnimId: number | null = null;
 
     if (route.length > 1) {
-      // One line per leg — see buildRouteLegPositions for why the route is not
+      // One line per leg. See buildRouteLegPositions for why the route is not
       // drawn as a single polyline.
       const legs = buildRouteLegPositions(route, 0.5);
 
@@ -228,14 +228,14 @@ export function Globe({ onPinClick, onPinHover, selectedPostId }: GlobeProps) {
       const DASH_CYCLE = DASH_SIZE + GAP_SIZE;
 
       // Clip the line at the visible horizon rather than at the globe's centre
-      // plane — see horizonPlaneOffset in lib/geo for why the difference matters.
+      // plane. See horizonPlaneOffset in lib/geo for why the difference matters.
       const clipPlane = new Plane();
       const camDir = new Vector3();
       const horizonPoint = new Vector3();
       const updateClipPlane = () => {
         const camPos = globe.camera().position;
         const d = camPos.length();
-        if (d <= GLOBE_RADIUS) return; // camera inside the globe — nothing sensible to clip
+        if (d <= GLOBE_RADIUS) return; // camera inside the globe, nothing sensible to clip
         camDir.copy(camPos).divideScalar(d);
         horizonPoint.copy(camDir).multiplyScalar(horizonPlaneOffset(d));
         clipPlane.setFromNormalAndCoplanarPoint(camDir, horizonPoint);
@@ -250,7 +250,7 @@ export function Globe({ onPinClick, onPinHover, selectedPostId }: GlobeProps) {
         dashSize: DASH_SIZE,
         gapSize: GAP_SIZE,
         dashScale: 1,
-        // Bypass depth testing entirely — the globe's tessellated surface
+        // Bypass depth testing entirely. The globe's tessellated surface
         // doesn't sit at exactly the same depth as the line, so any depth-based
         // approach (polygonOffset, LessEqualDepth) fails at high zoom.
         // The clipping plane hides the back hemisphere instead.
@@ -296,7 +296,7 @@ export function Globe({ onPinClick, onPinHover, selectedPostId }: GlobeProps) {
             dashScale = target;
             routeMaterial.dashScale = target;
           }
-          // Constant rate — visual speed auto-compensates because a higher
+          // Constant rate; visual speed auto-compensates because a higher
           // dashScale maps the same offset to fewer world units. Wrapped to one
           // cycle so it cannot drift into magnitudes where float32 mod() in the
           // shader loses precision and the dashes collapse into a solid line.

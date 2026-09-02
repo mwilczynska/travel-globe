@@ -78,7 +78,7 @@ function HomePage({ isAuthor, user, onLogout }: { isAuthor: boolean; user: { dis
     <div className={`min-h-screen bg-gray-50 flex flex-col ${mobileMode === 'map' ? 'lg:overflow-auto overflow-hidden h-screen' : ''}`}>
       {/* Header */}
       {/* z-50 keeps the header above the globe pane (z-20) and its map-mode
-          toggle bar (z-30) — at equal z-index the later DOM node would win and
+          toggle bar (z-30). At equal z-index the later DOM node would win and
           the blue bar would paint over the header once the page scrolls. */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50 h-16">
         <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between relative">

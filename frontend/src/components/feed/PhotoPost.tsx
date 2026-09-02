@@ -42,7 +42,7 @@ export function PhotoPost({
   onDelete,
 }: PhotoPostProps) {
   const navigate = useNavigate();
-  // comment_submit is logged server-side in routes/comments.ts — don't double-count it here.
+  // comment_submit is logged server-side in routes/comments.ts, so don't double-count it here.
   const { trackLightboxOpen, trackGalleryOpen, trackMediaPlay } = useAnalytics();
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
   const [galleryMode, setGalleryMode] = useState(false);

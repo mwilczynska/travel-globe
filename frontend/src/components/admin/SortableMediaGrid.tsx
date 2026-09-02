@@ -34,7 +34,7 @@ function moveItem<T>(list: T[], from: number, to: number): T[] {
 
 /**
  * Grid of uploaded media that can be reordered by dragging a tile anywhere in
- * the grid — the tile lifts out as a floating card and the remaining tiles
+ * the grid. The tile lifts out as a floating card and the remaining tiles
  * close up around it, so a photo can be moved several slots in one gesture.
  * Works with mouse, pen and touch via pointer events.
  */
@@ -117,7 +117,7 @@ export function SortableMediaGrid<T extends SortableMedia>({
 
       e.preventDefault();
 
-      // Recompute the container rect every move — the page can scroll mid-drag.
+      // Recompute the container rect every move: the page can scroll mid-drag.
       const cRect = container.getBoundingClientRect();
       const px = e.clientX - cRect.left;
       const py = e.clientY - cRect.top;

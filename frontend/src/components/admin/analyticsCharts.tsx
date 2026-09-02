@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 /**
  * Chart primitives for the analytics dashboard.
  *
- * Palette below is the validated categorical order — adjacent-pair CVD ΔE 9.1,
+ * Palette below is the validated categorical order: adjacent-pair CVD ΔE 9.1,
  * normal-vision ΔE 19.6 against the white card surface. Slots are assigned in
  * fixed order and never cycled: a 7th country folds into "Other". Three slots
  * sit under 3:1 contrast on white, so every chart using them also ships a table
@@ -132,7 +132,7 @@ export interface StackedPoint {
 /**
  * Stacked (or single-series) time bars with an optional trend overlay.
  *
- * The trend line shares the bars' y-axis and units — it is a smoothing of the
+ * The trend line shares the bars' y-axis and units. It is a smoothing of the
  * same measure, never a second scale.
  */
 export function TimeBarChart({
@@ -170,7 +170,7 @@ export function TimeBarChart({
     <div ref={ref} className="relative">
       {width > 0 && (
         <svg width={width} height={height} role="img" aria-label={`${valueLabel} over time`}>
-          {/* Gridlines — solid hairlines, one shade off the surface */}
+          {/* Gridlines: solid hairlines, one shade off the surface */}
           {ticks.map(t => (
             <g key={t}>
               <line x1={padding.left} x2={width - padding.right} y1={y(t)} y2={y(t)} stroke={INK.grid} strokeWidth={1} />
@@ -201,7 +201,7 @@ export function TimeBarChart({
                 tabIndex={0}
                 style={{ outline: 'none' }}
               >
-                {/* Generous hit area — the bar itself can be 1px wide */}
+                {/* Generous hit area: the bar itself can be 1px wide */}
                 <rect
                   x={padding.left + i * slot}
                   y={padding.top}
@@ -229,7 +229,7 @@ export function TimeBarChart({
             );
           })}
 
-          {/* Trend overlay — chrome ink, not a series color */}
+          {/* Trend overlay: chrome ink, not a series color */}
           {trend && (
             <path
               fill="none"
@@ -403,7 +403,7 @@ export function ColumnChart({
   );
 }
 
-/** Horizontal bar list — magnitude with the value always visible as text. */
+/** Horizontal bar list: magnitude with the value always visible as text. */
 export function BarList({
   rows,
   color = SERIES[0],

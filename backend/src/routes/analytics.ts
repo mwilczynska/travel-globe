@@ -21,7 +21,7 @@ function isPrivateIp(ip: string): boolean {
   if (ip.startsWith('169.254.')) return true;
   // Not an IP at all (contains non-IP characters like : in URLs, letters etc)
   if (/[a-zA-Z]/.test(ip) && !ip.includes(':')) return true;
-  // Contains scheme — it's a URL, not an IP
+  // Contains scheme, so it's a URL, not an IP
   if (ip.includes('://')) return true;
   return false;
 }
@@ -74,7 +74,7 @@ function isBotUserAgent(ua: string | undefined): boolean {
   return BOT_UA_PATTERN.test(ua);
 }
 
-// Group referrers by hostname — storing the full URL meant one site showed up
+// Group referrers by hostname. Storing the full URL meant one site showed up
 // as many rows and consumed the whole top-N list.
 function referrerHost(referrer: string | null | undefined): string | null {
   if (!referrer) return null;
@@ -104,7 +104,7 @@ function parseUserAgent(ua: string | undefined): { deviceType: string; browser: 
 const router = Router();
 
 // Valid analytics event types (whitelist).
-// Must stay in sync with the trackers exposed by frontend/src/hooks/useAnalytics.ts —
+// Must stay in sync with the trackers exposed by frontend/src/hooks/useAnalytics.ts.
 // media_play, outbound_link and post_interaction were previously emitted by the
 // hook but rejected here with a 400, so they were silently lost.
 const validEventTypes = [
@@ -179,7 +179,7 @@ router.post('/event', async (req: Request, res: Response) => {
     // Respond immediately, do geo lookup async
     res.json({ success: true });
 
-    // Geo lookup (non-blocking — we already sent the response).
+    // Geo lookup (non-blocking; we already sent the response).
     // Skip it for bots so we don't spend rate-limited lookups on crawlers.
     const geo = bot ? null : await lookupGeo(ipAddress || '');
 
@@ -368,7 +368,7 @@ router.get('/summary', authorAuth, (req: Request, res: Response) => {
     // --- Visit depth: how much of the blog a single sitting actually covers ---
     //
     // session_id comes from a 30-day cookie, so it identifies a *visitor*, not a
-    // visit — grouping by it alone reports durations spanning days. Split each
+    // visit. Grouping by it alone reports durations spanning days. Split each
     // visitor's event stream into visits on a 30-minute inactivity gap, the
     // industry-standard sessionisation rule.
     const VISIT_GAP_MS = 30 * 60 * 1000;
@@ -411,7 +411,7 @@ router.get('/summary', authorAuth, (req: Request, res: Response) => {
       visits: visitCount,
       avgEventsPerVisit: visitCount ? visits.reduce((s, v) => s + v.events, 0) / visitCount : 0,
       avgDurationSeconds: visitCount ? visits.reduce((s, v) => s + v.duration, 0) / visitCount : 0,
-      // A single-event visit has no measurable dwell time — treat as a bounce.
+      // A single-event visit has no measurable dwell time, so treat it as a bounce.
       bounceRate: visitCount ? visits.filter(v => v.events <= 1).length / visitCount : 0,
       eventBuckets: bucket(visits.map(v => v.events), [1, 3, 10], ['1', '2-3', '4-10', '11+']),
       durationBuckets: bucket(

@@ -1,4 +1,4 @@
-# Local Docker stack — HTTP only, no TLS certificates required.
+# Local Docker stack. HTTP only, no TLS certificates required.
 #
 # Run with:  docker compose -f docker-compose.local.yml up --build
 # Then open: http://localhost

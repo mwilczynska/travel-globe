@@ -16,7 +16,7 @@ Things worth knowing before touching a live deployment:
 - **Back up before deploying.** Schema migrations write to the database.
   `docker cp <backend-container>:/app/data/travel-blog.db ./backup.db`
 - **Data lives in named volumes** (`db-data`, `uploads`) and survives rebuilds.
-  Never run `docker compose down -v` — `-v` deletes them, and with them every
+  Never run `docker compose down -v`. The `-v` deletes them, and with them every
   post, comment, account and uploaded photo.
 - **Restart the backend after any out-of-band database change.** sql.js holds
   the database in memory and only reads from disk at startup, so running
@@ -30,7 +30,7 @@ Things worth knowing before touching a live deployment:
 
 Kept because each one cost real time and the cause is not obvious:
 
-1. **TypeScript**: `Comment.approved` is `number`, not `boolean` — SQLite stores
+1. **TypeScript**: `Comment.approved` is `number`, not `boolean`, because SQLite stores
    0/1. `src/api/client.ts` needed null coalescing on the CSRF token return.
 2. **Docker build**: `schema.sql` was not copied to `dist` (added a COPY), and
    `/app/data` did not exist (added `mkdir -p data`).
@@ -43,7 +43,7 @@ Kept because each one cost real time and the cause is not obvious:
 5. **EXIF GPS never arrived**: `exifr.parse()` with a `pick` list silently drops
    `latitude`/`longitude`, because those are values exifr *derives* from the GPS
    block rather than tags in their own right. GPS needs its own `exifr.gps()`
-   read — see `services/exif.ts`.
+   read. See `services/exif.ts`.
 
 ## Progress Tracker
 
@@ -88,14 +88,14 @@ Kept because each one cost real time and the cause is not obvious:
 - [x] Mobile responsive layout (post cards, globe sizing)
 - [x] Mobile testing setup (network dev server access)
 - [x] Globe zoom/pan hint icons
-- [x] ~~Tag filtering UI~~ (removed — tags not used)
+- [x] ~~Tag filtering UI~~ (removed, tags not used)
 
 ### Phase 6: Additional Post Types ✅ COMPLETE
 - [x] QuotePost.tsx component
 - [x] LinkPost.tsx component with preview
 - [x] TextPost.tsx component
 - [x] AudioPost.tsx component with custom player
-- [x] VideoPost.tsx component with HTML5 player (legacy — now unified into PhotoPost)
+- [x] VideoPost.tsx component with HTML5 player (legacy, now unified into PhotoPost)
 - [x] Update CreatePost.tsx to support all types
 - [x] Post type selector in create UI (5 types: photo/video, text, quote, link, audio)
 
@@ -161,11 +161,11 @@ Kept because each one cost real time and the cause is not obvious:
 - [x] Period-over-period deltas on every headline figure
 - [x] Bot detection and exclusion (`is_bot`)
 - [x] Referrers grouped by hostname with a Direct bucket (`referrer_host`)
-- [x] Post-view tracking wired up — "Top Posts" was previously always empty
+- [x] Post-view tracking wired up. "Top Posts" was previously always empty
 - [x] Lightbox / gallery / media-play / outbound-link tracking
 - [x] Export CSV respects the selected range
 - [x] Table view on the time series
-- [x] ~~Hour-of-day / day-of-week / heatmap~~ (removed — the author moves between
+- [x] ~~Hour-of-day / day-of-week / heatmap~~ (removed, because the author moves between
       timezones, so one "local" clock describes readers in a frame of reference
       that keeps moving)
 
@@ -230,7 +230,7 @@ Passwords live in the SQLite database, which never travels with the code:
 
 Deploying ships code only; a deployment keeps its own accounts and passwords. To
 change them, run `npm run setup`, or update `site_settings.viewer_password_hash`
-and `users.password_hash` with bcrypt hashes — then **restart the backend**.
+and `users.password_hash` with bcrypt hashes, then **restart the backend**.
 
 ## Development Commands
 ```bash
@@ -265,12 +265,12 @@ cd backend && npm run demo:assets
 docker compose up --build -d
 ```
 
-`docker-compose.yml` **is** the production stack — named volumes for the database
+`docker-compose.yml` **is** the production stack: named volumes for the database
 and uploads, ports 80 and 443, and a read-only `/etc/letsencrypt` mount for TLS.
 Two parts are load-bearing:
 
 - Switching `db-data` / `uploads` to bind mounts points the backend at an empty
-  directory, and it then creates a blank database — the site comes up with no
+  directory, and it then creates a blank database. The site comes up with no
   posts, comments or accounts. The real data stays behind in the named volume.
 - Dropping port 443 or the letsencrypt mount breaks HTTPS: nginx terminates TLS
   itself (`frontend/nginx.conf.template`) and reads the certificates from that
@@ -294,32 +294,32 @@ instead. Use it to try the containers locally.
 - Rate limiting can be toggled on/off in Settings page
 - Site settings stored in `site_settings` table (key-value pairs)
 - Media editing uses replace-all pattern (delete + re-insert)
-- Photo and video post types are unified — videos upload alongside photos in a single "Photo/Video" post type. Legacy `post_type='video'` rows route to PhotoPost. DB schema unchanged.
+- Photo and video post types are unified: videos upload alongside photos in a single "Photo/Video" post type. Legacy `post_type='video'` rows route to PhotoPost. DB schema unchanged.
 - Upload size limit: 200 MB per file (multer + nginx)
 - MediaUploader supports `multiple` prop for multi-file selection (photo/video posts)
 - Orphaned upload files are kept on disk (cheap storage, avoids deletion complexity)
-- Android Chrome file picker is limited (no third-party gallery apps) — use Firefox on Android for full app chooser
-- Analytics `/summary` takes `days` and `tz` (minutes east of UTC). All date/hour buckets are shifted to the author's local time — `created_at` is stored UTC
+- Android Chrome file picker is limited (no third-party gallery apps), so use Firefox on Android for full app chooser
+- Analytics `/summary` takes `days` and `tz` (minutes east of UTC). All date/hour buckets are shifted to the author's local time, while `created_at` is stored UTC
 - Daily series is zero-filled server-side; without it a plain `GROUP BY DATE()` omits quiet days and the x-axis stops being proportional to time
-- `session_id` is a 30-day cookie, so it identifies a *visitor*, not a visit. Visit metrics split each visitor's stream on a 30-minute idle gap — grouping by session_id alone reports durations spanning days
+- `session_id` is a 30-day cookie, so it identifies a *visitor*, not a visit. Visit metrics split each visitor's stream on a 30-minute idle gap, because grouping by session_id alone reports durations spanning days
 - Bot traffic is flagged (`is_bot`) at write time, not dropped: excluded from every reported figure but still present in the raw CSV export
-- `validEventTypes` in routes/analytics.ts must stay in sync with the trackers in hooks/useAnalytics.ts — events missing from the whitelist are rejected with a 400 and silently lost
-- `useAnalytics()` returns trackers only. Page views come from the separate `usePageView()`, called once at the top level — when the page view lived inside useAnalytics, every component using it emitted another one
-- Post views fire from an IntersectionObserver after 1s at ≥50% visible, measured against `min(viewport, post)` — photo posts are routinely taller than the screen, so a plain intersectionRatio never reaches 0.5
+- `validEventTypes` in routes/analytics.ts must stay in sync with the trackers in hooks/useAnalytics.ts. Events missing from the whitelist are rejected with a 400 and silently lost
+- `useAnalytics()` returns trackers only. Page views come from the separate `usePageView()`, called once at the top level. When the page view lived inside useAnalytics, every component using it emitted another one
+- Post views fire from an IntersectionObserver after 1s at ≥50% visible, measured against `min(viewport, post)`, because photo posts are routinely taller than the screen, so a plain intersectionRatio never reaches 0.5
 - Chart colours come from a validated categorical order in analyticsCharts.tsx (adjacent-pair CVD ΔE 9.1 on white). Slots are assigned in fixed order and never cycled; a 7th country folds into "Other". Three slots are sub-3:1 contrast, so those charts also ship a table view
 - Analytics geolocation uses ip-api.com (free tier, HTTP only) with in-memory cache and 3-second timeout
-- Analytics geo lookup is non-blocking — response sent immediately, DB updated after lookup completes
+- Analytics geo lookup is non-blocking: the response is sent immediately, DB updated after lookup completes
 - Private/local IPs are detected and skipped for geo lookup (isPrivateIp helper)
-- Tags system removed from frontend — backend routes remain as harmless dead code
+- Tags system removed from frontend, but backend routes remain as harmless dead code
 - Comments are expanded by default on all post types
 - Lightbox uses z-[9999] and body scroll lock to prevent globe markers bleeding through on mobile
 - Lightbox has a gallery mode (grid of all media in the post): "Gallery" button, `g` key, the feed's "View all N" button, or the "+N" tile. Arrows/Escape navigate; Escape steps out of the gallery before closing
-- Header is `z-50` — it must outrank the globe pane (`z-20`) and the mobile map-mode toggle bar (`z-30`). At equal z-index the later DOM node wins and the blue bar paints over the header once the page scrolls
+- Header is `z-50` and must outrank the globe pane (`z-20`) and the mobile map-mode toggle bar (`z-30`). At equal z-index the later DOM node wins and the blue bar paints over the header once the page scrolls
 - Media reordering is drag-anywhere (pointer events, works on touch); arrow keys still reorder for keyboard users
 - Site identity is configuration, never source. `frontend/src/config.ts` and `vite.config.ts` hold the neutral defaults; a deployment overrides them via `VITE_*` in `.env`, and drops its logo into the gitignored `frontend/public/branding/`. Nothing identifying a deployment belongs in a commit
 - `vite.config.ts` writes the branding defaults into `process.env` before Vite's `%VITE_*%` HTML replacement runs. Without that, an unconfigured clone ships a literal `%VITE_SITE_NAME%` as its tab title, because Vite leaves unset placeholders untouched
 - nginx config is two templates plus a shared `nginx-app.conf` snippet. `${SITE_DOMAIN}` is substituted by the base image's envsubst entrypoint at container start; `NGINX_ENVSUBST_FILTER='^SITE_'` stops it eating nginx's own `$host`/`$uri`/`$scheme`. The snippet is copied verbatim, never templated
-- `extractExif()` reads GPS with a **separate** `exifr.gps()` call. `exifr.parse()` with a `pick` list drops `latitude`/`longitude` — they are derived from the GPS block, not tags, so a picked parse silently returns no coordinates
+- `extractExif()` reads GPS with a **separate** `exifr.gps()` call. `exifr.parse()` with a `pick` list drops `latitude`/`longitude`, because they are derived from the GPS block, not tags, so a picked parse silently returns no coordinates
 - `npm run seed` builds the demo trip from `backend/demo-assets/` through the real `extractExif` → `processImage` path, so pins come from the photos' own EXIF. It refuses to run when `posts` is non-empty
 - Demo photos are public domain / CC0 only, re-encoded to strip the photographer's metadata and given synthetic GPS. `scripts/prepare-demo-assets.mjs` regenerates them and `docs/CREDITS.md`, and aborts on any licence that is not PD or CC0
 
@@ -328,7 +328,7 @@ instead. Use it to try the containers locally.
 > **Before editing anything, confirm which branch the work belongs on.** This
 > folder holds a private branch and a public snapshot branch, and they are not
 > interchangeable. Ask; do not assume from whichever branch happens to be checked
-> out. The usual answer is the **private** branch — day-to-day feature work goes
+> out. The usual answer is the **private** branch, where day-to-day feature work goes
 > there, and only a deliberate publishing step moves it to the public one.
 
 
@@ -346,7 +346,7 @@ scripts/check-public-safe.sh public && git push public public:main
 The script greps a ref's files *and commit messages* for the strings in
 `.public-blocklist`, and refuses trees containing databases, env files, keys,
 private media directories or unexpected IPv4 literals. `.public-blocklist` is
-gitignored — a checked-in blocklist would publish exactly what it guards — so
+gitignored, because a checked-in blocklist would publish exactly what it guards, so
 copy `.public-blocklist.example` and fill in the real values.
 
 The public branch is refreshed by copying files across, never by merging (the
@@ -362,7 +362,7 @@ git checkout main
 
 Take the files from whichever branch actually holds the identity-free code. If
 that is not the branch you deploy, the two will drift, and copying from the
-wrong one publishes the domain — which is the mistake the script exists to
+wrong one publishes the domain, which is the mistake the script exists to
 catch.
 
 ## Ports
@@ -370,7 +370,7 @@ catch.
 - Frontend dev: 5173
 - Frontend preview: 4173
 
-**Open the app at http://localhost:5173** — port 3001 is the API only and returns a
+**Open the app at http://localhost:5173**. Port 3001 is the API only and returns a
 bare 404 at `/`. Vite proxies `/api` and `/uploads` through to 3001.
 
 ## Windows Development Notes
@@ -388,16 +388,16 @@ Route lines on the globe needed constant visual thickness and constant dash size
 ### Solution: Custom Three.js Line2 with depthTest:false + clipping plane
 - Uses `Line2` + `LineGeometry` + `LineMaterial` from `three/examples/jsm/lines/`
 - `LineMaterial` with `worldUnits: false` gives constant screen-space pixel width (2px)
-- `depthTest: false` + `depthWrite: false` — bypasses depth buffer entirely (no z-fighting at any zoom)
+- `depthTest: false` + `depthWrite: false` bypasses the depth buffer entirely (no z-fighting at any zoom)
 - A `THREE.Plane` clipping plane hides everything beyond the visible horizon
 - `dashScale` scaled inversely with altitude (`DEFAULT_ALT / alt`) for constant screen-size dashes
 - Clipping plane + dashScale + dashOffset all updated in one `requestAnimationFrame` loop (a controls `change` listener alone goes stale during `pointOfView` tweens)
-- Spherical maths lives in `frontend/src/lib/geo.ts` (pure, no three.js — directly testable)
+- Spherical maths lives in `frontend/src/lib/geo.ts` (pure, no three.js, so directly testable)
 - Route legs interpolated every 0.5° along their **great circle** so the polyline follows the surface
 
 ### Clipping plane must sit at the horizon, not the globe centre
 The horizon of a sphere of radius R seen from distance d is not the great circle
-through the centre — it is the smaller circle at `n·p = R²/d`, and it shrinks as
+through the centre. It is the smaller circle at `n·p = R²/d`, and it shrinks as
 you zoom in. Clipping at the centre plane (constant 0) leaves a band of line
 past the horizon still drawn; because back-hemisphere points project *inside*
 the silhouette disc, that band reads as the route showing "through" the globe,
@@ -411,7 +411,7 @@ skipped. Three reasons, all of which showed up as the line flickering between
 dashed and solid on a long leg late in the route:
 - A there-and-back pair covers the same great circle, so two dashed lines land on
   top of each other. Each is measured from its own start, so their dash phases
-  differ and the relative phase sweeps as `dashScale` changes with zoom — one
+  differ and the relative phase sweeps as `dashScale` changes with zoom, so one
   line's dashes fill the other's gaps. The second line adds nothing visually.
 - A single polyline accumulates distance from the very first stop, and the shader
   multiplies that total by `dashScale`, so on a late leg a small scale change
@@ -422,20 +422,20 @@ dashed and solid on a long leg late in the route:
 
 ### Route legs must be great circles, not linear lat/lng interpolation
 Interpolating lat/lng linearly takes the long way round whenever a leg crosses
-the antimeridian — Kyoto (lng 135.8) to San Francisco (lng -122.4) swept 258°
+the antimeridian. Kyoto (lng 135.8) to San Francisco (lng -122.4) swept 258°
 west across Asia and the Atlantic instead of 102° east over the Pacific. The
 demo seed includes exactly this leg so the behaviour is visible on first run.
 `buildRoutePositions()` slerps unit vectors on the sphere instead, which has no
 seam and always yields the shorter arc. Note a great circle through the point
-directly beneath the camera projects to a straight line on screen — that is
+directly beneath the camera projects to a straight line on screen, and that is
 correct perspective, not a regression.
 
 ### Approaches That Don't Work
 1. **pathsData:** Lines clipped at highest zoom (camera near plane issue)
-2. **arcsData with arcStroke:** `THREE.TubeGeometry` in world-space units — lines got thicker on zoom
+2. **arcsData with arcStroke:** `THREE.TubeGeometry` in world-space units, so lines got thicker on zoom
 3. **polygonOffset:** Works at normal zoom but insufficient at close camera distances
 4. **LessEqualDepth + renderOrder:** Globe's tessellated mesh isn't at exactly the same depth as the line
-5. **Altitude offset on line:** Causes parallax — line separates from pins at high zoom
+5. **Altitude offset on line:** Causes parallax; the line separates from pins at high zoom
 6. **camera.near modification:** Breaks globe zoom limits (allows zooming through the globe)
 7. **Scaling dashSize/gapSize down:** float32 `mod()` loses precision when cycle is tiny
 

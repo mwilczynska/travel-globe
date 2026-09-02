@@ -163,7 +163,7 @@ export function Feed({ filterType, onPostHover }: FeedProps) {
   return (
     <div className="space-y-6">
       {posts.map(post => {
-        // `key` is passed directly at each call site — React warns if it arrives
+        // `key` is passed directly at each call site. React warns if it arrives
         // via a spread object.
         const commonWrapperProps = {
           id: `post-${post.id}`,

@@ -5,7 +5,7 @@
 //
 // What it does, per photo:
 //   1. Asks the Commons API for the file's licence and verifies it is public
-//      domain or CC0. Anything else aborts the run — no CC-BY or CC-BY-SA,
+//      domain or CC0. Anything else aborts the run: no CC-BY or CC-BY-SA,
 //      whose attribution chains are a liability in a repo people fork.
 //   2. Downloads the original.
 //   3. Re-encodes it, which strips the original EXIF. These are other people's

@@ -15,7 +15,7 @@
 # the right branch" is a rule that works until the day it doesn't. This makes it
 # mechanical.
 #
-# The deployment-specific strings to search for are NOT in this file — a
+# The deployment-specific strings to search for are NOT in this file. A
 # leak-checker that hardcodes the secrets it looks for leaks them itself. They
 # live in .public-blocklist, which is gitignored. See .public-blocklist.example.
 
@@ -72,7 +72,7 @@ if [[ -f "$BLOCKLIST" ]]; then
 
   [[ $hits -eq 0 ]] && pass "no blocklisted strings in files or commit messages"
 else
-  warn "no .public-blocklist found — skipping the private-string check"
+  warn "no .public-blocklist found, skipping the private-string check"
   warn "copy .public-blocklist.example to .public-blocklist and fill it in"
 fi
 
@@ -107,7 +107,7 @@ OCTET='(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])'
 if ips=$(git grep -I -hoE "\b($OCTET\.){3}$OCTET\b" "$SHA" -- . 2>/dev/null \
     | grep -vE '^(127\.0\.0\.1|0\.0\.0\.0|255\.255\.255\.255|192\.0\.2\.[0-9]+|198\.51\.100\.[0-9]+|203\.0\.113\.[0-9]+|1\.2\.3\.4|8\.8\.8\.8)$' \
     | sort -u); then
-  fail "IPv4 literals found — confirm none is a real host:"
+  fail "IPv4 literals found. Confirm none is a real host:"
   echo "$ips" | sed 's/^/          /'
 else
   pass "no unexpected IPv4 literals"
