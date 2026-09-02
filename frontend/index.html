@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="%VITE_SITE_DESCRIPTION%" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <title>%VITE_SITE_NAME%</title>
+  </head>
+  <body>
+    <div id="root">
+      <!-- This text shows if React fails to load -->
+      <p style="padding: 20px; font-family: sans-serif;">Loading...</p>
+    </div>
+    <div id="error-display" style="padding: 20px; font-family: monospace; color: red; white-space: pre-wrap;"></div>
+    <noscript>
+      <p style="padding: 20px; font-family: sans-serif;">JavaScript is required to view this site.</p>
+    </noscript>
+    <script>
+      window.onerror = function(msg, url, line, col, error) {
+        // Ignore benign errors
+        if (msg && (msg.includes('aborted') || msg.includes('AbortError'))) return true;
+        document.getElementById('error-display').textContent =
+          'Error: ' + msg + '\nURL: ' + url + '\nLine: ' + line + '\nCol: ' + col;
+        return false;
+      };
+      window.addEventListener('unhandledrejection', function(e) {
+        // Ignore benign errors (aborted requests from navigation, scroll, or StrictMode)
+        var reason = e.reason ? (e.reason.message || e.reason.name || String(e.reason)) : '';
+        if (reason.toLowerCase().includes('abort')) return;
+        document.getElementById('error-display').textContent =
+          'Promise Error: ' + (e.reason ? e.reason.message || e.reason : 'Unknown');
+      });
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

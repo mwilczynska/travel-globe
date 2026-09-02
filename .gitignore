@@ -1,0 +1,73 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Database. Ignore the whole directory, not just *.db: a backup or a
+# temporarily-renamed copy (travel-blog.db.real, .db.bak) otherwise slips past a
+# glob on the extension and gets committed.
+backend/data/
+
+# Uploaded files
+backend/uploads/
+
+# Download cache for prepare-demo-assets.mjs. The processed output in
+# backend/demo-assets/ is committed; these originals are not.
+backend/.demo-asset-cache/
+
+# Deployment-specific branding (logo etc). The repo ships a neutral placeholder
+# at frontend/public/logo.png; a deployment drops its own logo.png in here and
+# the frontend Dockerfile copies it over the placeholder at build time. Being
+# ignored, it survives every git pull on the server.
+frontend/public/branding/
+
+# Editor directories and files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Windows reserved name files (created by Unix tools like yt-dlp)
+nul
+cookies.txt
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test coverage
+coverage/
+
+# Claude Code
+.claude/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Test pictures and personal media
+test-pics/
+
+# Personal notes and scratch files
+chrome-connection-notes.md
+warm-wondering-hare.md
+
+# Deployment guide (contains server-specific info)
+DEPLOYMENT.md

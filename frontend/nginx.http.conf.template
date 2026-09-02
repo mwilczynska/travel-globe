@@ -1,0 +1,14 @@
+# Plain-HTTP server for local Docker runs and for deployments that terminate
+# TLS somewhere else (a load balancer, Cloudflare, a reverse proxy in front).
+#
+# Selected by pointing the nginx image at this directory:
+#   NGINX_ENVSUBST_TEMPLATE_DIR=/etc/nginx/templates-http
+# which is what docker-compose.local.yml does. No certificates required.
+
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+
+    include /etc/nginx/snippets/app.conf;
+}

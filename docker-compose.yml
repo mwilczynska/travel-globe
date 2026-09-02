@@ -1,0 +1,63 @@
+# Production stack — this is the file the VPS runs.
+#
+# Deploy with:  docker compose up --build -d      (from the repo root)
+#
+# Two things here are load-bearing; changing either loses data or breaks TLS:
+#
+#   1. db-data / uploads are NAMED VOLUMES, not bind mounts. The live database
+#      lives in travel-blog_db-data. Pointing these at a host directory mounts an
+#      empty folder, and the backend then creates a blank database — the site
+#      comes up with no posts, comments or accounts.
+#
+#   2. Port 443 and the read-only /etc/letsencrypt mount are what make HTTPS
+#      work. frontend/nginx.conf.template terminates TLS itself and reads the
+#      certificates from that path, so dropping either leaves the site on plain HTTP.
+#
+# Site identity (domain, name, tagline) comes from .env, which is gitignored —
+# see .env.example. Without it the stack still builds, as a generic
+# "Travel Globe" on localhost.
+#
+# Healthchecks are defined in the Dockerfiles, not here.
+# For a local Docker run without certificates, use docker-compose.local.yml.
+
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - .env
+    volumes:
+      - db-data:/app/data
+      - uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+      # Vite inlines these at build time, so they are build args rather than
+      # runtime environment. Changing them needs --build to take effect.
+      args:
+        VITE_SITE_NAME: ${VITE_SITE_NAME:-}
+        VITE_SITE_TAGLINE: ${VITE_SITE_TAGLINE:-}
+        VITE_SITE_DESCRIPTION: ${VITE_SITE_DESCRIPTION:-}
+    restart: unless-stopped
+    # Listed explicitly rather than via env_file so the backend's secrets
+    # (SESSION_SECRET, CSRF_SECRET) are not handed to the web tier as well.
+    environment:
+      # Substituted into nginx.conf.template at container start.
+      - SITE_DOMAIN=${SITE_DOMAIN:-localhost}
+      # Restrict envsubst to SITE_* so nginx's own $host / $uri / $scheme
+      # runtime variables are left alone.
+      - NGINX_ENVSUBST_FILTER=^SITE_
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - backend
+
+volumes:
+  db-data:
+  uploads:

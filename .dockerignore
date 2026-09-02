@@ -1,0 +1,59 @@
+# Dependencies
+node_modules
+*/node_modules
+
+# Build outputs
+dist
+*/dist
+build
+*/build
+
+# Environment files (contain secrets)
+.env
+.env.*
+!.env.example
+
+# IDE and editor files
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
+logs
+
+# Test files
+coverage
+*.test.ts
+*.spec.ts
+__tests__
+
+# Documentation
+*.md
+!README.md
+
+# Development files
+.eslintrc*
+.prettierrc*
+tsconfig.json
+vite.config.ts
+
+# Local data (will use volumes instead)
+data/
+backend/uploads/
+backend/data/
+
+# Temp files
+tmp
+temp
+*.tmp

@@ -1,0 +1,53 @@
+# Local Docker stack — HTTP only, no TLS certificates required.
+#
+# Run with:  docker compose -f docker-compose.local.yml up --build
+# Then open: http://localhost
+#
+# This is the file to use when trying the project out, or when TLS is
+# terminated upstream (a load balancer, Cloudflare, another reverse proxy).
+# It differs from docker-compose.yml in three ways: no port 443, no
+# /etc/letsencrypt mount, and nginx renders the certificate-free template in
+# /etc/nginx/templates-http instead of the HTTPS one.
+#
+# Data still lives in named volumes, so posts and uploads survive a rebuild.
+# These are separate volumes from the production stack's.
+#
+# For a plain `npm run dev` workflow without Docker at all, see the README.
+
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    # Optional here, unlike the production stack: a fresh clone has no .env and
+    # should still come up. Without one the backend falls back to its built-in
+    # development secrets, which is fine for a local trial and not for a real
+    # deployment. Needs Compose v2.24+ for `required: false`.
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - db-data:/app/data
+      - uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_SITE_NAME: ${VITE_SITE_NAME:-}
+        VITE_SITE_TAGLINE: ${VITE_SITE_TAGLINE:-}
+        VITE_SITE_DESCRIPTION: ${VITE_SITE_DESCRIPTION:-}
+    restart: unless-stopped
+    environment:
+      # Selects the plain-HTTP template baked into the image.
+      - NGINX_ENVSUBST_TEMPLATE_DIR=/etc/nginx/templates-http
+      - NGINX_ENVSUBST_FILTER=^SITE_
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  db-data:
+  uploads:
