@@ -40,7 +40,7 @@ the app actually working. It refuses to run if the database already has posts.
 date order by a dashed route line. Click a pin to jump the feed to that post;
 hover a post to spin the globe to it.
 
-![The route crossing the Pacific](docs/screenshots/globe-route.jpg)
+![The Pacific leg arriving into San Francisco](docs/screenshots/globe-route.jpg)
 
 The route legs are **great circles**, interpolated as slerped unit vectors rather
 than straight lines in lat/lng. That is what makes the Kyoto → San Francisco leg
@@ -68,7 +68,7 @@ with a table view for the charts whose colours fall under 3:1 contrast.
 
 **Mobile gets a map mode** — full-screen globe with a swipeable post carousel.
 
-<img src="docs/screenshots/mobile-map.jpg" width="380" alt="Mobile map mode">
+<img src="docs/screenshots/mobile-map.jpg" width="360" alt="Mobile map mode: full-screen globe with a swipeable post carousel">
 
 ## Making it yours
 

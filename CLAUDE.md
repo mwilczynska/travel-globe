@@ -325,6 +325,13 @@ instead. Use it to try the containers locally.
 
 ## Publishing to the public repository
 
+> **Before editing anything, confirm which branch the work belongs on.** This
+> folder holds a private branch and a public snapshot branch, and they are not
+> interchangeable. Ask; do not assume from whichever branch happens to be checked
+> out. The usual answer is the **private** branch — day-to-day feature work goes
+> there, and only a deliberate publishing step moves it to the public one.
+
+
 This project is developed privately and published from a separate history-free
 branch, because the private history contains personal photographs and server
 details that a `git filter-repo` pass would have to strip. The public branch is
