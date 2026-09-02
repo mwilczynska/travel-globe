@@ -323,6 +323,41 @@ instead. Use it to try the containers locally.
 - `npm run seed` builds the demo trip from `backend/demo-assets/` through the real `extractExif` → `processImage` path, so pins come from the photos' own EXIF. It refuses to run when `posts` is non-empty
 - Demo photos are public domain / CC0 only, re-encoded to strip the photographer's metadata and given synthetic GPS. `scripts/prepare-demo-assets.mjs` regenerates them and `docs/CREDITS.md`, and aborts on any licence that is not PD or CC0
 
+## Publishing to the public repository
+
+This project is developed privately and published from a separate history-free
+branch, because the private history contains personal photographs and server
+details that a `git filter-repo` pass would have to strip. The public branch is
+a single root commit with no parent, so there is no history to leak.
+
+Before any push to the public remote:
+
+```bash
+scripts/check-public-safe.sh public && git push public public:main
+```
+
+The script greps a ref's files *and commit messages* for the strings in
+`.public-blocklist`, and refuses trees containing databases, env files, keys,
+private media directories or unexpected IPv4 literals. `.public-blocklist` is
+gitignored — a checked-in blocklist would publish exactly what it guards — so
+copy `.public-blocklist.example` and fill in the real values.
+
+The public branch is refreshed by copying files across, never by merging (the
+two histories share no commits):
+
+```bash
+git checkout public
+git checkout <sanitised-branch> -- .
+git commit -m "Update from private"
+scripts/check-public-safe.sh public && git push public public:main
+git checkout main
+```
+
+Take the files from whichever branch actually holds the identity-free code. If
+that is not the branch you deploy, the two will drift, and copying from the
+wrong one publishes the domain — which is the mistake the script exists to
+catch.
+
 ## Ports
 - Backend: 3001
 - Frontend dev: 5173

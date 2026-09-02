@@ -71,3 +71,7 @@ warm-wondering-hare.md
 
 # Deployment guide (contains server-specific info)
 DEPLOYMENT.md
+
+# Private strings that scripts/check-public-safe.sh greps for. Checking this in
+# would publish exactly what it is meant to guard. See .public-blocklist.example.
+.public-blocklist

@@ -153,8 +153,11 @@ frontend/
   nginx.conf.template       HTTPS server, ${SITE_DOMAIN} substituted at start
   nginx.http.conf.template  plain HTTP variant
   nginx-app.conf            shared server body
+  scripts/        one-off asset preparation
 docs/
   CREDITS.md      image provenance
+scripts/
+  check-public-safe.sh   pre-publish leak check
 ```
 
 ## API

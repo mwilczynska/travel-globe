@@ -1,0 +1,31 @@
+# Strings that must never reach the public repository.
+#
+#   cp .public-blocklist.example .public-blocklist
+#
+# Then replace the placeholders below with your real values. The copy is
+# gitignored, so your actual domain and host never enter a commit — which is the
+# whole point: a checked-in blocklist would publish exactly what it guards.
+#
+# One extended regular expression per line, matched case-insensitively against
+# every file and every commit message in the ref being checked. Blank lines and
+# lines starting with # are ignored. Remember to escape dots in a literal
+# hostname or address.
+#
+# Used by scripts/check-public-safe.sh.
+
+# Your production domain, and the site name if it resembles the domain.
+# example\.com
+# my site name
+
+# Your server's IP address.
+# 203\.0\.113\.45
+
+# Your home or office network, if it has ever appeared in notes.
+# 192\.168\.1\.8
+
+# Deployment user, hostnames, or anything else specific to your servers.
+# youruser@your-host
+#
+# Prefer patterns specific enough not to match your own documentation. A bare
+# `deploy@` will fire on every deployment example in the README; pair it with
+# the host, or rely on the IP address entry above.
