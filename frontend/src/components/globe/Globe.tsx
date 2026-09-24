@@ -3,7 +3,6 @@ import { Plane, Vector3 } from 'three';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
-import { getGlobeData } from '../../api/client';
 import { GLOBE_RADIUS, buildRouteLegPositions, horizonPlaneOffset } from '../../lib/geo';
 import type { GlobePoint } from '../../types';
 
@@ -21,6 +20,11 @@ const GLOBE_IMAGE_URL = '//unpkg.com/three-globe/example/img/earth-blue-marble.j
 // Route geometry lives in lib/geo so the spherical maths can be tested directly.
 
 interface GlobeProps {
+  // Globe data is fetched by the page (useGlobeData) and shared with the carousel
+  points: GlobePoint[];
+  route: [number, number][];
+  isLoading: boolean;
+  loadError?: string | null;
   onPinClick?: (postId: number) => void;
   onPinHover?: (postId: number | null) => void;
   selectedPostId?: number | null;
@@ -49,16 +53,14 @@ function initWebGL(): { supported: boolean; gl: WebGLRenderingContext | null } {
 export let webGLContextRef: WebGLRenderingContext | null = null;
 
 
-export function Globe({ onPinClick, onPinHover, selectedPostId }: GlobeProps) {
+export function Globe({ points, route, isLoading, loadError, onPinClick, onPinHover, selectedPostId }: GlobeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<GlobeInstanceType | null>(null);
   const onPinClickRef = useRef(onPinClick);
   const onPinHoverRef = useRef(onPinHover);
   const pinElementsRef = useRef<Map<number, HTMLElement>>(new Map());
-  const [points, setPoints] = useState<GlobePoint[]>([]);
-  const [route, setRoute] = useState<[number, number][]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [initError, setInitError] = useState<string | null>(null);
+  const error = initError ?? loadError ?? null;
   const [GlobeGL, setGlobeGL] = useState<GlobeGLType | null>(null);
   const [webGLSupported] = useState(() => {
     const result = initWebGL();
@@ -73,8 +75,7 @@ export function Globe({ onPinClick, onPinHover, selectedPostId }: GlobeProps) {
   // Load globe library dynamically (with delay to ensure WebGL is ready)
   useEffect(() => {
     if (!webGLSupported) {
-      setError('WebGL not supported');
-      setIsLoading(false);
+      setInitError('WebGL not supported');
       return;
     }
 
@@ -87,40 +88,12 @@ export function Globe({ onPinClick, onPinHover, selectedPostId }: GlobeProps) {
         .catch((err) => {
           console.error('Failed to load globe library:', err);
           const errorMsg = err instanceof Error ? err.message : String(err);
-          setError(`Globe library error: ${errorMsg}`);
-          setIsLoading(false);
+          setInitError(`Globe library error: ${errorMsg}`);
         });
     }, 100);
 
     return () => clearTimeout(timeoutId);
   }, [webGLSupported]);
-
-  // Load globe data
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const globeResult = await getGlobeData();
-
-        if (globeResult.error) {
-          setError(globeResult.error);
-          setIsLoading(false);
-          return;
-        }
-
-        if (globeResult.data) {
-          setPoints(globeResult.data.points);
-          setRoute(globeResult.data.route);
-        }
-
-        setIsLoading(false);
-      } catch (err) {
-        console.error('Failed to load globe data:', err);
-        setError('Failed to load globe data');
-        setIsLoading(false);
-      }
-    }
-    loadData();
-  }, []);
 
   // Initialize globe once when data is loaded
   useEffect(() => {
@@ -136,7 +109,7 @@ export function Globe({ onPinClick, onPinHover, selectedPostId }: GlobeProps) {
       globe = new GlobeGL(container);
     } catch (err) {
       console.error('Failed to create GlobeGL instance:', err);
-      setError('WebGL initialization failed');
+      setInitError('WebGL initialization failed');
       return;
     }
 
@@ -150,7 +123,7 @@ export function Globe({ onPinClick, onPinHover, selectedPostId }: GlobeProps) {
         .atmosphereAltitude(0.15);
     } catch (err) {
       console.error('Failed to configure globe appearance:', err);
-      setError('Globe configuration failed');
+      setInitError('Globe configuration failed');
       return;
     }
 
@@ -164,7 +137,7 @@ export function Globe({ onPinClick, onPinHover, selectedPostId }: GlobeProps) {
         globe.globeImageUrl(GLOBE_IMAGE_URL);
       } catch (err2) {
         console.error('Fallback image also failed:', err2);
-        setError('Globe texture failed');
+        setInitError('Globe texture failed');
         return;
       }
     }
@@ -315,7 +288,7 @@ export function Globe({ onPinClick, onPinHover, selectedPostId }: GlobeProps) {
     const renderer = globe.renderer();
     if (!renderer) {
       console.error('Three.js renderer failed to initialize');
-      setError('3D renderer failed');
+      setInitError('3D renderer failed');
       return;
     }
 
@@ -323,7 +296,7 @@ export function Globe({ onPinClick, onPinHover, selectedPostId }: GlobeProps) {
     const gl = renderer.getContext();
     if (gl.isContextLost()) {
       console.error('WebGL context is lost');
-      setError('WebGL context lost');
+      setInitError('WebGL context lost');
       return;
     }
 

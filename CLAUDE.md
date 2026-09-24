@@ -150,7 +150,8 @@ Kept because each one cost real time and the cause is not obvious:
 ### Phase 10: Infinite Scroll ✅ COMPLETE
 - [x] Infinite scroll for feed and PostCarousel (replace pagination)
   - IntersectionObserver triggers loading next page when near bottom
-  - Backend uses cursor-based pagination (page + limit params)
+  - Backend used offset pagination (page + limit params). The feed moved to real
+    cursors in Phase 14, and the carousel no longer pages at all
 
 ### Phase 13: Analytics Overhaul ✅ COMPLETE
 - [x] Zero-filled, properly-labelled date axis (quiet days render as gaps)
@@ -183,6 +184,15 @@ Kept because each one cost real time and the cause is not obvious:
   - Image counter (e.g. "2 / 5") shown at bottom of lightbox
   - Swipe flag prevents accidental lightbox close on swipe end
 
+### Phase 14: Globe → Feed Jump ✅ COMPLETE
+- [x] Clicking any pin shows its post in the feed, loaded or not (previously only
+      the pages already scrolled into)
+- [x] Cursor pagination on `GET /api/posts` (`at` / `before` / `after`)
+- [x] Feed holds a slice that can start anywhere: "Show newer posts" above it,
+      "Back to latest" pill, infinite scroll below
+- [x] Mobile map-mode carousel built from globe data; follows pin taps, no paging
+- [x] Photo/video width/height reserved before load
+
 ---
 
 ## Tech Stack
@@ -200,7 +210,9 @@ Kept because each one cost real time and the cause is not obvious:
 - `backend/src/middleware/rateLimiter.ts` - Rate limiting (with toggle support)
 - `frontend/src/App.tsx` - Main app with routes and layout
 - `frontend/src/components/globe/Globe.tsx` - Interactive 3D globe
+- `frontend/src/components/feed/Feed.tsx` - Feed slice, cursor loading, jump-to-post, scroll anchoring
 - `frontend/src/components/feed/PostCarousel.tsx` - Mobile map mode carousel
+- `frontend/src/hooks/useGlobeData.ts` - Globe data, fetched once and shared by the globe and the carousel
 - `frontend/src/components/admin/CreatePost.tsx` - Post creation (5 types: photo/video, text, quote, link, audio)
 - `frontend/src/components/admin/EditPost.tsx` - Post editing (with media editing)
 - `frontend/src/components/admin/MediaUploader.tsx` - Drag-and-drop file upload (supports multiple)
@@ -322,6 +334,11 @@ instead. Use it to try the containers locally.
 - `extractExif()` reads GPS with a **separate** `exifr.gps()` call. `exifr.parse()` with a `pick` list drops `latitude`/`longitude`, because they are derived from the GPS block, not tags, so a picked parse silently returns no coordinates
 - `npm run seed` builds the demo trip from `backend/demo-assets/` through the real `extractExif` → `processImage` path, so pins come from the photos' own EXIF. It refuses to run when `posts` is non-empty
 - Demo photos are public domain / CC0 only, re-encoded to strip the photographer's metadata and given synthetic GPS. `scripts/prepare-demo-assets.mjs` regenerates them and `docs/CREDITS.md`, and aborts on any licence that is not PD or CC0
+- `GET /api/posts` pages by `page` or by cursor post id: `at` (that post and older), `before`, `after`, returning `hasOlder`/`hasNewer`. Cursor comparisons use `(COALESCE(captured_at, created_at), id)`, exactly the feed's ORDER BY, or page boundaries skip/repeat posts
+- A pin click that targets an unloaded post replaces the feed with a slice starting at that post (one `at=` request). App sends Feed a `jumpRequest {postId, seq}`; `seq` makes a repeat click re-fire. A later jump or click supersedes one still in flight. Pin *hover* only scrolls to posts already loaded, and a click cancels the pending hover timer
+- "Show newer posts" prepends, and Feed holds the reader's place by hand: Safari has no CSS scroll anchoring. The feed list sets `overflow-anchor: none` so Chrome/Firefox don't correct a second time, and corrections go through `scrollInstantly()` because `index.css` puts `scroll-behavior: smooth` on `<html>`
+- The feed's wrapper in App is `overflow-y-auto` but never scrolls itself (the window does), so `position: sticky` inside the feed never engages. The "Back to latest" pill is `fixed`
+- `/posts/globe/data` points carry the carousel card fields (`post_type`, `title`, `thumbnail`, `thumbnail_is_video`), so map mode makes no posts requests. Media `file_type` is plain `'image'` for images but a MIME type for video/audio
 
 ## Publishing to the public repository
 

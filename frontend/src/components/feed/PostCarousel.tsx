@@ -1,75 +1,32 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { getPosts } from '../../api/client';
-
-interface Post {
-  id: number;
-  post_type: string;
-  content: {
-    caption?: string;
-    title?: string;
-    text?: string;
-    thumbnail?: string;
-  };
-  location_name?: string;
-  latitude?: number;
-  longitude?: number;
-  media?: {
-    id: number;
-    file_path: string;
-    file_type: string;
-  }[];
-}
+import { useState, useEffect, useRef, useMemo } from 'react';
+import type { GlobePoint } from '../../types';
 
 interface PostCarouselProps {
+  // Every located post, oldest first, as loaded for the globe
+  points: GlobePoint[];
+  isLoading: boolean;
+  // The post selected elsewhere (e.g. a pin tapped on the globe); the carousel
+  // turns to it
+  activePostId: number | null;
   onPostSelect: (postId: number) => void;
   onPostHighlight: (postId: number) => void;
 }
 
-export function PostCarousel({ onPostSelect, onPostHighlight }: PostCarouselProps) {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const pageRef = useRef(1);
+export function PostCarousel({ points, isLoading, activePostId, onPostSelect, onPostHighlight }: PostCarouselProps) {
+  // Newest first, matching the feed. Built from the globe data, so every
+  // located post is here from the start and nothing is paged in.
+  const posts = useMemo(() => [...points].reverse(), [points]);
+  const [activeIndex, setActiveIndex] = useState(() =>
+    Math.max(0, posts.findIndex(p => p.id === activePostId))
+  );
   const touchStartX = useRef<number>(0);
 
-  const loadPosts = useCallback(async (page: number) => {
-    if (page === 1) {
-      setIsLoading(true);
-    } else {
-      setIsLoadingMore(true);
-    }
-
-    const result = await getPosts({ page, limit: 20 });
-
-    if (result.data) {
-      const postsWithLocation = result.data.posts.filter(
-        (p: Post) => p.latitude && p.longitude
-      );
-      if (page === 1) {
-        setPosts(postsWithLocation);
-      } else {
-        setPosts(prev => [...prev, ...postsWithLocation]);
-      }
-      setHasMore(result.data.page < result.data.totalPages);
-    }
-
-    setIsLoading(false);
-    setIsLoadingMore(false);
-  }, []);
-
+  // Follow selections made outside the carousel, such as tapping a pin
   useEffect(() => {
-    loadPosts(1);
-  }, [loadPosts]);
-
-  // Load more when user gets close to the end
-  useEffect(() => {
-    if (posts.length > 0 && activeIndex >= posts.length - 3 && hasMore && !isLoadingMore) {
-      pageRef.current += 1;
-      loadPosts(pageRef.current);
-    }
-  }, [activeIndex, posts.length, hasMore, isLoadingMore, loadPosts]);
+    if (activePostId === null) return;
+    const index = posts.findIndex(p => p.id === activePostId);
+    if (index !== -1) setActiveIndex(index);
+  }, [activePostId, posts]);
 
   // Notify parent when active post changes
   useEffect(() => {
@@ -78,26 +35,6 @@ export function PostCarousel({ onPostSelect, onPostHighlight }: PostCarouselProp
       onPostHighlight(post.id);
     }
   }, [activeIndex, posts, onPostHighlight]);
-
-  const getPostThumbnail = (post: Post): { url: string; isVideo: boolean } | null => {
-    // Check media array first
-    if (post.media && Array.isArray(post.media) && post.media.length > 0) {
-      const firstMedia = post.media[0];
-      if (firstMedia && firstMedia.file_path) {
-        return {
-          url: `/uploads/${firstMedia.file_path}`,
-          isVideo: firstMedia.file_type?.startsWith('video/') || false
-        };
-      }
-    }
-    // Fallback to content thumbnail (for link posts)
-    if (post.content?.thumbnail) {
-      const thumb = post.content.thumbnail;
-      const url = thumb.startsWith('http') ? thumb : (thumb.startsWith('/uploads/') ? thumb : `/uploads/${thumb}`);
-      return { url, isVideo: false };
-    }
-    return null;
-  };
 
   const getPostIcon = (postType: string) => {
     switch (postType) {
@@ -188,7 +125,6 @@ export function PostCarousel({ onPostSelect, onPostHighlight }: PostCarouselProp
       {/* Cards */}
       <div className="relative flex items-end justify-center gap-2 px-4">
         {getVisiblePosts().map(({ post, offset, index }) => {
-          const thumbnailData = getPostThumbnail(post);
           const isCenter = offset === 0;
           const isAdjacent = Math.abs(offset) === 1;
 
@@ -209,16 +145,16 @@ export function PostCarousel({ onPostSelect, onPostHighlight }: PostCarouselProp
             >
               {/* Image */}
               <div className={`bg-gray-800 ${isCenter ? 'h-32' : isAdjacent ? 'h-24' : 'h-18'} relative`}>
-                {thumbnailData ? (
-                  thumbnailData.isVideo ? (
+                {post.thumbnail ? (
+                  post.thumbnail_is_video ? (
                     <video
-                      src={thumbnailData.url}
+                      src={post.thumbnail}
                       className="w-full h-full object-cover"
                       muted
                     />
                   ) : (
                     <img
-                      src={thumbnailData.url}
+                      src={post.thumbnail}
                       alt=""
                       className="w-full h-full object-cover"
                     />
@@ -232,7 +168,7 @@ export function PostCarousel({ onPostSelect, onPostHighlight }: PostCarouselProp
               {/* Title */}
               <div className="bg-white p-1.5">
                 <p className={`font-medium text-gray-900 truncate ${isCenter ? 'text-xs' : 'text-[10px]'}`}>
-                  {post.content.title || post.content.caption || post.location_name || 'Untitled'}
+                  {post.title || post.label || 'Untitled'}
                 </p>
               </div>
             </div>
@@ -273,13 +209,6 @@ export function PostCarousel({ onPostSelect, onPostHighlight }: PostCarouselProp
           </>
         )}
       </div>
-
-      {/* Loading more indicator */}
-      {isLoadingMore && (
-        <div className="absolute top-2 right-4">
-          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-        </div>
-      )}
     </div>
   );
 }

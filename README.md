@@ -37,8 +37,9 @@ the app actually working. It refuses to run if the database already has posts.
 ## What it does
 
 **An interactive globe.** Every located post becomes a pin, joined in
-date order by a dashed route line. Click a pin to jump the feed to that post;
-hover a post to spin the globe to it.
+date order by a dashed route line. Click a pin to jump the feed to that post,
+however far back it is: the feed opens at that post in a single request, with
+newer posts above it and older ones below. Hover a post to spin the globe to it.
 
 ![The Pacific leg arriving into San Francisco](docs/screenshots/globe-route.jpg)
 
@@ -66,7 +67,8 @@ with a table view for the charts whose colours fall under 3:1 contrast.
 
 ![The analytics dashboard](docs/screenshots/analytics.jpg)
 
-**Mobile gets a map mode:** a full-screen globe with a swipeable post carousel.
+**Mobile gets a map mode:** a full-screen globe with a swipeable carousel of
+every located post. Tap a pin and the carousel turns to it.
 
 <img src="docs/screenshots/mobile-map.jpg" width="360" alt="Mobile map mode: full-screen globe with a swipeable post carousel">
 
@@ -170,9 +172,9 @@ routes need an account.
 | `/viewer/login` | POST | none | Viewer password login |
 | `/viewer/check` | GET | none | Session status |
 | `/auth/login` `/auth/logout` `/auth/me` | POST/POST/GET | none/author/author | Author session |
-| `/posts` | GET/POST | viewer/author | List (paginated) / create |
+| `/posts` | GET/POST | viewer/author | List (paginated, see below) / create |
 | `/posts/:id` | GET/PUT/DELETE | viewer/author/author | Read / update / delete |
-| `/posts/globe/data` | GET | viewer | Pins and route for the globe |
+| `/posts/globe/data` | GET | viewer | Pins, route and map-mode carousel cards |
 | `/comments/post/:postId` | GET/POST | viewer | Approved comments / submit |
 | `/comments/pending` `/comments/all` | GET | author | Moderation queues |
 | `/comments/:id` `/comments/:id/approve` | PUT/DELETE | author | Edit, delete, approve |
@@ -182,6 +184,12 @@ routes need an account.
 | `/settings/:key` | GET/PUT | author | `comment_moderation`, `rate_limiting_enabled` |
 | `/geocoding/reverse` `/geocoding/search` | GET | author | Nominatim lookups |
 | `/csrf-token` `/health` | GET | none | CSRF token, health check |
+
+`GET /posts` returns posts newest first, `limit` at a time (default 10, max 50),
+by `page=N` or by cursor, where the cursor is a post id: `at=<id>` gives that
+post and older (how the feed opens at a clicked pin), `before=<id>` older posts,
+`after=<id>` newer ones. Every response says whether more exist either way
+(`hasOlder`, `hasNewer`).
 
 ## Security
 

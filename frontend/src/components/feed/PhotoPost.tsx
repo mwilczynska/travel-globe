@@ -222,6 +222,8 @@ export function PhotoPost({
           >
             <video
               src={`/uploads/${media[0].file_path}`}
+              width={media[0].width}
+              height={media[0].height}
               preload="metadata"
               className="w-full max-h-[600px] object-cover"
             />
@@ -232,8 +234,12 @@ export function PhotoPost({
             </div>
           </div>
         ) : (
+          // width/height reserve the image's space before it loads, so posts
+          // don't grow and push the rest of the feed around as images arrive
           <img
             src={`/uploads/${media[0].file_path}`}
+            width={media[0].width}
+            height={media[0].height}
             alt=""
             className="w-full max-h-[600px] object-cover cursor-pointer"
             onClick={() => openLightbox(0)}

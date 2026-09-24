@@ -30,7 +30,47 @@ interface Media {
   exif_data: string | null;
 }
 
-// GET /api/posts - List posts (paginated)
+// The feed's sort key. Cursor comparisons must use exactly this expression, or
+// a page boundary would skip or repeat posts.
+const FEED_KEY = 'COALESCE(p.captured_at, p.created_at)';
+
+type CursorMode = 'at' | 'before' | 'after';
+
+// For each cursor mode: the side of the cursor the page comes from, the scan
+// order, and the opposite side (only used to report whether posts exist there).
+// `at` includes the cursor post itself, so the feed can start from it.
+const CURSOR_MODES: Record<CursorMode, { side: string; order: 'ASC' | 'DESC'; opposite: string }> = {
+  at: { side: '<=', order: 'DESC', opposite: '>' },
+  before: { side: '<', order: 'DESC', opposite: '>=' },
+  after: { side: '>', order: 'ASC', opposite: '<=' },
+};
+
+function withDetails(post: Post & { author_name: string }) {
+  const media = query<Media>(
+    'SELECT * FROM media WHERE post_id = ? ORDER BY id',
+    [post.id]
+  );
+
+  const tags = query<{ tag: string }>(
+    'SELECT tag FROM post_tags WHERE post_id = ?',
+    [post.id]
+  );
+
+  return {
+    ...post,
+    content: JSON.parse(post.content),
+    media: media.map(m => ({
+      ...m,
+      exif_data: m.exif_data ? JSON.parse(m.exif_data) : null,
+    })),
+    tags: tags.map(t => t.tag),
+  };
+}
+
+// GET /api/posts - List posts, newest first.
+// Paginate by `page`, or by cursor: `at=<id>` (that post and older), `before=<id>`
+// (older than it) or `after=<id>` (newer than it). A cursor lets the feed open at
+// any post in one request, however far back it is.
 router.get('/', viewerAuth, (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -39,7 +79,7 @@ router.get('/', viewerAuth, (req: Request, res: Response) => {
     const tag = req.query.tag as string | undefined;
     const type = req.query.type as string | undefined;
 
-    let sql = `
+    const selectSql = `
       SELECT p.*, u.display_name as author_name
       FROM posts p
       JOIN users u ON p.author_id = u.id
@@ -58,57 +98,77 @@ router.get('/', viewerAuth, (req: Request, res: Response) => {
       params.push(type);
     }
 
-    if (conditions.length > 0) {
-      sql += ' WHERE ' + conditions.join(' AND ');
+    const where = (extra: string[] = []) => {
+      const all = [...conditions, ...extra];
+      return all.length > 0 ? ' WHERE ' + all.join(' AND ') : '';
+    };
+
+    const cursorMode = (Object.keys(CURSOR_MODES) as CursorMode[]).find(
+      mode => req.query[mode] !== undefined
+    );
+
+    if (cursorMode) {
+      const cursorId = Number(req.query[cursorMode]);
+      if (!Number.isInteger(cursorId)) {
+        res.status(400).json({ error: 'Invalid cursor' });
+        return;
+      }
+
+      const cursor = get<{ sort_key: string }>(
+        'SELECT COALESCE(captured_at, created_at) AS sort_key FROM posts WHERE id = ?',
+        [cursorId]
+      );
+      if (!cursor) {
+        res.status(404).json({ error: 'Post not found' });
+        return;
+      }
+
+      const { side, order, opposite } = CURSOR_MODES[cursorMode];
+      const compare = (op: string) => `(${FEED_KEY}, p.id) ${op} (?, ?)`;
+      const cursorParams = [cursor.sort_key, cursorId];
+
+      // One extra row says whether there is more beyond this page.
+      const rows = query<Post & { author_name: string }>(
+        selectSql + where([compare(side)]) +
+          ` ORDER BY ${FEED_KEY} ${order}, p.id ${order} LIMIT ?`,
+        [...params, ...cursorParams, limit + 1]
+      );
+      const moreThisWay = rows.length > limit;
+      const pagePosts = rows.slice(0, limit);
+      if (order === 'ASC') pagePosts.reverse();
+
+      const moreOtherWay = !!get(
+        'SELECT 1 AS found FROM posts p' + where([compare(opposite)]) + ' LIMIT 1',
+        [...params, ...cursorParams]
+      );
+
+      res.json({
+        posts: pagePosts.map(withDetails),
+        hasOlder: cursorMode === 'after' ? moreOtherWay : moreThisWay,
+        hasNewer: cursorMode === 'after' ? moreThisWay : moreOtherWay,
+      });
+      return;
     }
 
-    sql += ' ORDER BY COALESCE(p.captured_at, p.created_at) DESC, p.id DESC';
-    sql += ' LIMIT ? OFFSET ?';
-    params.push(limit, offset);
+    const posts = query<Post & { author_name: string }>(
+      selectSql + where() + ` ORDER BY ${FEED_KEY} DESC, p.id DESC LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
 
-    const posts = query<Post & { author_name: string }>(sql, params);
-
-    // Get total count
-    let countSql = 'SELECT COUNT(*) as count FROM posts p';
-    const countParams: unknown[] = [];
-
-    if (conditions.length > 0) {
-      countSql += ' WHERE ' + conditions.join(' AND ');
-      if (tag) countParams.push(tag);
-      if (type) countParams.push(type);
-    }
-
-    const countResult = get<{ count: number }>(countSql, countParams);
+    const countResult = get<{ count: number }>(
+      'SELECT COUNT(*) as count FROM posts p' + where(),
+      params
+    );
     const total = countResult?.count || 0;
-
-    // Get media and tags for each post
-    const postsWithDetails = posts.map(post => {
-      const media = query<Media>(
-        'SELECT * FROM media WHERE post_id = ? ORDER BY id',
-        [post.id]
-      );
-
-      const tags = query<{ tag: string }>(
-        'SELECT tag FROM post_tags WHERE post_id = ?',
-        [post.id]
-      );
-
-      return {
-        ...post,
-        content: JSON.parse(post.content),
-        media: media.map(m => ({
-          ...m,
-          exif_data: m.exif_data ? JSON.parse(m.exif_data) : null,
-        })),
-        tags: tags.map(t => t.tag),
-      };
-    });
+    const totalPages = Math.ceil(total / limit);
 
     res.json({
-      posts: postsWithDetails,
+      posts: posts.map(withDetails),
       total,
       page,
-      totalPages: Math.ceil(total / limit),
+      totalPages,
+      hasOlder: page < totalPages,
+      hasNewer: page > 1,
     });
   } catch (error) {
     console.error('Get posts error:', error);
@@ -360,7 +420,39 @@ router.get('/tags/all', viewerAuth, (_req: Request, res: Response) => {
   }
 });
 
+// Card title for the mobile map-mode carousel, capped so a long caption doesn't
+// bloat the globe payload.
+function cardTitle(content: Record<string, unknown>): string | null {
+  for (const field of [content.title, content.caption]) {
+    if (typeof field === 'string' && field.trim()) return field.trim().slice(0, 100);
+  }
+  return null;
+}
+
+// Card image for the carousel: the post's first photo or video, else a link
+// post's preview image. Audio files are skipped, as they can't be shown as an image.
+// Uploads store images as plain 'image' but video and audio as MIME types.
+function cardThumbnail(
+  media: { file_path: string; file_type: string } | undefined,
+  content: Record<string, unknown>
+): { thumbnail: string | null; thumbnail_is_video: boolean } {
+  if (media && !media.file_type.startsWith('audio')) {
+    return {
+      thumbnail: `/uploads/${media.file_path}`,
+      thumbnail_is_video: media.file_type.startsWith('video'),
+    };
+  }
+  const thumb = content.thumbnail;
+  if (typeof thumb === 'string' && thumb) {
+    const url = thumb.startsWith('http') || thumb.startsWith('/uploads/') ? thumb : `/uploads/${thumb}`;
+    return { thumbnail: url, thumbnail_is_video: false };
+  }
+  return { thumbnail: null, thumbnail_is_video: false };
+}
+
 // GET /api/globe-data - Get data for the globe visualization
+// Every located post is listed, with enough to draw its carousel card, so map
+// mode needs no posts requests of its own.
 router.get('/globe/data', viewerAuth, (_req: Request, res: Response) => {
   try {
     const posts = query<{
@@ -368,21 +460,40 @@ router.get('/globe/data', viewerAuth, (_req: Request, res: Response) => {
       latitude: number;
       longitude: number;
       location_name: string | null;
-      captured_at: string | null;
-      created_at: string;
+      post_type: string;
+      content: string;
     }>(
-      `SELECT id, latitude, longitude, location_name, captured_at, created_at
+      `SELECT id, latitude, longitude, location_name, post_type, content
        FROM posts
        WHERE latitude IS NOT NULL AND longitude IS NOT NULL
        ORDER BY COALESCE(captured_at, created_at) ASC, id ASC`
     );
 
-    const points = posts.map(p => ({
-      id: p.id,
-      lat: p.latitude,
-      lng: p.longitude,
-      label: p.location_name || 'Unknown location',
-    }));
+    // First media item per post, in one query rather than one per post.
+    const firstMedia = new Map(
+      query<{ post_id: number; file_path: string; file_type: string }>(
+        `SELECT post_id, file_path, file_type FROM media
+         WHERE id IN (SELECT MIN(id) FROM media GROUP BY post_id)`
+      ).map(m => [m.post_id, m])
+    );
+
+    const points = posts.map(p => {
+      let content: Record<string, unknown> = {};
+      try {
+        content = JSON.parse(p.content);
+      } catch {
+        // A malformed post shouldn't take the whole globe down.
+      }
+      return {
+        id: p.id,
+        lat: p.latitude,
+        lng: p.longitude,
+        label: p.location_name || 'Unknown location',
+        post_type: p.post_type,
+        title: cardTitle(content),
+        ...cardThumbnail(firstMedia.get(p.id), content),
+      };
+    });
 
     // Create route as array of [lat, lng] pairs in chronological order
     const route = posts.map(p => [p.latitude, p.longitude] as [number, number]);

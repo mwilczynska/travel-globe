@@ -50,6 +50,11 @@ export interface GlobePoint {
   lat: number;
   lng: number;
   label: string;
+  // Card fields for the mobile map-mode carousel
+  post_type: PostType;
+  title: string | null;
+  thumbnail: string | null;
+  thumbnail_is_video: boolean;
 }
 
 export interface AuthState {

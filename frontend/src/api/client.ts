@@ -95,17 +95,37 @@ export const getCurrentUser = () =>
   request<User>('/auth/me');
 
 // Posts
+export interface PostsPage {
+  posts: Post[];
+  hasOlder: boolean;
+  hasNewer: boolean;
+  // Only present for `page` requests, not cursor requests
+  total?: number;
+  page?: number;
+  totalPages?: number;
+}
+
+/**
+ * Posts, newest first. Paginate with `page`, or with one cursor post id:
+ * `at` (that post and older), `before` (older than it), `after` (newer than it).
+ */
 export const getPosts = (params?: {
   page?: number;
   limit?: number;
   type?: string;
+  at?: number;
+  before?: number;
+  after?: number;
 }) => {
   const searchParams = new URLSearchParams();
   if (params?.page) searchParams.set('page', String(params.page));
   if (params?.limit) searchParams.set('limit', String(params.limit));
   if (params?.type) searchParams.set('type', params.type);
+  if (params?.at !== undefined) searchParams.set('at', String(params.at));
+  if (params?.before !== undefined) searchParams.set('before', String(params.before));
+  if (params?.after !== undefined) searchParams.set('after', String(params.after));
   const query = searchParams.toString();
-  return request<{ posts: Post[]; total: number; page: number; totalPages: number }>(`/posts${query ? `?${query}` : ''}`);
+  return request<PostsPage>(`/posts${query ? `?${query}` : ''}`);
 };
 
 export const getPost = (id: number) =>

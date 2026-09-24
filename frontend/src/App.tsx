@@ -7,67 +7,69 @@ import { CreatePost } from './components/admin/CreatePost'
 import { EditPost } from './components/admin/EditPost'
 import { CommentModeration } from './components/admin/CommentModeration'
 import { AnalyticsDashboard } from './components/admin/AnalyticsDashboard'
-import { Feed } from './components/feed/Feed'
+import { Feed, type FeedJumpRequest } from './components/feed/Feed'
 import { Globe } from './components/globe/Globe'
 import { PostCarousel } from './components/feed/PostCarousel'
 import { useAnalytics, usePageView } from './hooks/useAnalytics'
+import { useGlobeData } from './hooks/useGlobeData'
 import { SITE_NAME } from './config'
 
 type MobileMode = 'blog' | 'map'
 
+// Tailwind's `lg` breakpoint: from here up the feed sits beside the globe
+// instead of being swapped out for map mode.
+const DESKTOP_QUERY = '(min-width: 1024px)'
+
 function HomePage({ isAuthor, user, onLogout }: { isAuthor: boolean; user: { display_name: string } | null; onLogout: () => void }) {
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null)
   const [mobileMode, setMobileMode] = useState<MobileMode>('blog')
+  const [jumpRequest, setJumpRequest] = useState<FeedJumpRequest | null>(null)
   const feedRef = useRef<HTMLDivElement>(null)
   const pinHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const globeData = useGlobeData()
   const { trackGlobeInteraction } = useAnalytics()
   usePageView()
 
+  // Show a post in the feed, loading it first if it isn't among the loaded posts
+  const jumpToPost = useCallback((postId: number) => {
+    setJumpRequest(prev => ({ postId, seq: (prev?.seq ?? 0) + 1 }))
+  }, [])
+
   const handlePinClick = useCallback((postId: number) => {
+    // The pointer is still over the pin, so its hover timer would fire after
+    // the click and scroll again, past where the jump placed the feed.
+    if (pinHoverTimer.current) clearTimeout(pinHoverTimer.current)
     setSelectedPostId(postId)
     trackGlobeInteraction('pin_click', { post_id: postId })
-    // Scroll to the post in the feed
-    const postElement = document.getElementById(`post-${postId}`)
-    if (postElement) {
-      postElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      // Brief highlight effect
-      postElement.classList.add('ring-2', 'ring-sky-500')
-      setTimeout(() => {
-        postElement.classList.remove('ring-2', 'ring-sky-500')
-      }, 2000)
-    }
-  }, [trackGlobeInteraction])
+    // In mobile map mode the feed is hidden and the carousel turns to the post
+    // instead (it follows selectedPostId); opening the card jumps the feed.
+    if (mobileMode === 'map' && !window.matchMedia(DESKTOP_QUERY).matches) return
+    jumpToPost(postId)
+  }, [trackGlobeInteraction, mobileMode, jumpToPost])
 
   const handlePostHover = useCallback((postId: number | null) => {
     setSelectedPostId(postId)
   }, [])
 
+  // Hover only scrolls to posts that are already loaded. Loading on hover would
+  // fire a request, and swap out the feed, for every pin the mouse crosses.
   const handlePinHover = useCallback((postId: number | null) => {
     if (pinHoverTimer.current) clearTimeout(pinHoverTimer.current)
     if (postId === null) return
     pinHoverTimer.current = setTimeout(() => {
       setSelectedPostId(postId)
       const el = document.getElementById(`post-${postId}`)
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 400)
   }, [])
 
-  // Handle post selection from carousel (map mode)
+  // Handle post selection from carousel (map mode). The mode switch and the
+  // jump land in one render, so the feed is visible when it scrolls.
   const handleCarouselPostSelect = useCallback((postId: number) => {
     setMobileMode('blog')
     setSelectedPostId(postId)
-    // Wait for mode switch, then scroll to post
-    setTimeout(() => {
-      const postElement = document.getElementById(`post-${postId}`)
-      if (postElement) {
-        postElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        postElement.classList.add('ring-2', 'ring-sky-500')
-        setTimeout(() => {
-          postElement.classList.remove('ring-2', 'ring-sky-500')
-        }, 2000)
-      }
-    }, 100)
-  }, [])
+    jumpToPost(postId)
+  }, [jumpToPost])
 
   // Handle post highlight from carousel (center globe)
   const handleCarouselPostHighlight = useCallback((postId: number) => {
@@ -154,13 +156,24 @@ function HomePage({ isAuthor, user, onLogout }: { isAuthor: boolean; user: { dis
             : 'relative h-[30vh]'
         } lg:relative lg:inset-auto lg:z-auto lg:bg-transparent lg:h-[calc(100vh-4rem)] lg:p-4`}>
           <div className="w-full h-full lg:rounded-2xl lg:overflow-hidden lg:shadow-lg lg:border lg:border-gray-200">
-            <Globe onPinClick={handlePinClick} onPinHover={handlePinHover} selectedPostId={selectedPostId} />
+            <Globe
+              points={globeData.points}
+              route={globeData.route}
+              isLoading={globeData.isLoading}
+              loadError={globeData.error}
+              onPinClick={handlePinClick}
+              onPinHover={handlePinHover}
+              selectedPostId={selectedPostId}
+            />
           </div>
 
           {/* Carousel in map mode */}
           {mobileMode === 'map' && (
             <div className="lg:hidden absolute bottom-24 left-0 right-0 z-20">
               <PostCarousel
+                points={globeData.points}
+                isLoading={globeData.isLoading}
+                activePostId={selectedPostId}
                 onPostSelect={handleCarouselPostSelect}
                 onPostHighlight={handleCarouselPostHighlight}
               />
@@ -191,7 +204,7 @@ function HomePage({ isAuthor, user, onLogout }: { isAuthor: boolean; user: { dis
           mobileMode === 'map' ? 'hidden lg:block' : ''
         }`}>
           <main className="max-w-2xl mx-auto px-4 py-8">
-            <Feed onPostHover={handlePostHover} />
+            <Feed onPostHover={handlePostHover} jumpRequest={jumpRequest} />
           </main>
         </div>
       </div>
