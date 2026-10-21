@@ -1,0 +1,63 @@
+name: Container build
+
+on:
+  push:
+    paths: ["backend/**", "frontend/**", "docker-compose*.yml", ".github/workflows/container-build.yml"]
+  pull_request:
+    paths: ["backend/**", "frontend/**", "docker-compose*.yml", ".github/workflows/container-build.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Build backend image
+        run: docker build -t travel-globe-backend:ci backend
+
+      - name: Build frontend image
+        run: docker build -t travel-globe-frontend:ci frontend
+
+      - name: Report runtime versions
+        run: |
+          docker run --rm travel-globe-backend:ci node --version
+          docker run --rm travel-globe-backend:ci node -e "const s=require('sharp'); console.log('sharp', s.versions.sharp, 'libvips', s.versions.vips)"
+
+      # Same shape as docker-compose.local.yml: plain-HTTP nginx reaching the backend as `backend`.
+      - name: Start backend and frontend
+        run: |
+          docker network create tg-ci
+          docker run -d --name tg-backend --network tg-ci --network-alias backend \
+            -e NODE_ENV=production -e SESSION_SECRET=ci-only -e CSRF_SECRET=ci-only \
+            travel-globe-backend:ci
+          docker run -d --name tg-frontend --network tg-ci -p 8080:80 \
+            -e NGINX_ENVSUBST_TEMPLATE_DIR=/etc/nginx/templates-http -e 'NGINX_ENVSUBST_FILTER=^SITE_' \
+            travel-globe-frontend:ci
+
+      - name: Wait for the backend health check
+        run: |
+          for i in $(seq 1 30); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' tg-backend)
+            echo "backend: $status"
+            [ "$status" = healthy ] && exit 0
+            [ "$status" = unhealthy ] && break
+            sleep 5
+          done
+          docker logs tg-backend
+          exit 1
+
+      - name: Check the API through nginx
+        run: |
+          curl -fsS http://localhost:8080/api/health
+          curl -fsS -o /dev/null http://localhost:8080/
+
+      - name: Container logs
+        if: always()
+        run: |
+          docker logs tg-backend || true
+          docker logs tg-frontend || true
